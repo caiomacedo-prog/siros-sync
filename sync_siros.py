@@ -4,7 +4,7 @@ from datetime import datetime, timedelta
 
 AIRLINES  = {'TAM', 'LAN', 'LTM', 'LAT', 'GLO', 'GOL', 'AZU'}
 SIROS_URL = 'https://sas.anac.gov.br/sas/siros_api/voos'
-DAYS_BACK    = 3
+DAYS_BACK    = 7
 DAYS_FORWARD = 2
 
 today = datetime.utcnow()
