@@ -24,8 +24,11 @@ for d in dates:
         resp.raise_for_status()
         flights = resp.json()
 
+        # A API pode retornar lista direta ou objeto com chave 'data'
+        if isinstance(flights, dict):
+            flights = flights.get('data', flights.get('voos', []))
         if not isinstance(flights, list):
-            print(f'{date_key}: resposta inesperada')
+            print(f'{date_key}: resposta inesperada — {str(flights)[:200]}')
             continue
 
         rows = [
