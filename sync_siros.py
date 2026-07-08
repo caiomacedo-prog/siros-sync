@@ -22,34 +22,49 @@ for d in dates:
             headers={'Accept': 'application/json'}
         )
         resp.raise_for_status()
-        flights = resp.json()
 
-        # A API pode retornar lista direta ou objeto com chave 'data'
+        # Parse manual para garantir tipos corretos
+        flights = json.loads(resp.text)
+
+        # Se vier string duplo-codificada, parseia de novo
+        if isinstance(flights, str):
+            flights = json.loads(flights)
+
+        # Se vier dict com wrapper, extrai a lista
         if isinstance(flights, dict):
-            flights = flights.get('data', flights.get('voos', []))
+            for key in ('data', 'voos', 'content', 'items', 'results'):
+                if key in flights and isinstance(flights[key], list):
+                    flights = flights[key]
+                    break
+
         if not isinstance(flights, list):
-            print(f'{date_key}: resposta inesperada — {str(flights)[:200]}')
+            print(f'{date_key}: tipo inesperado {type(flights).__name__} — {str(flights)[:100]}')
             continue
 
         rows = [
             {
-                'date_key':    date_key,
-                'airline':     f.get('sg_empresa_icao', ''),
-                'flight':      f.get('nr_voo', ''),
-                'origin':      f.get('sg_icao_origem', ''),
-                'dest':        f.get('sg_icao_destino', ''),
-                'dep_utc':     f.get('dt_partida_prevista_utc', ''),
-                'arr_utc':     f.get('dt_chegada_prevista_utc', ''),
+                'date_key':     date_key,
+                'airline':      f.get('sg_empresa_icao', ''),
+                'flight':       f.get('nr_voo', ''),
+                'origin':       f.get('sg_icao_origem', ''),
+                'dest':         f.get('sg_icao_destino', ''),
+                'dep_utc':      f.get('dt_partida_prevista_utc', ''),
+                'arr_utc':      f.get('dt_chegada_prevista_utc', ''),
                 'dep_real_utc': f.get('dt_partida_real_utc', ''),
                 'arr_real_utc': f.get('dt_chegada_real_utc', ''),
-                'status':      f.get('cd_situacao_voo', '')
+                'status':       f.get('cd_situacao_voo', '')
             }
             for f in flights
             if f.get('sg_empresa_icao') in AIRLINES
         ]
 
         cache.extend(rows)
-        print(f'{date_key}: {len(flights)} totais → {len(rows)} MELI')
+        total = len(flights)
+        meli  = len(rows)
+        print(f'{date_key}: {total} voos totais → {meli} MELI')
+        if total > 0 and meli == 0:
+            empresas = set(f.get('sg_empresa_icao','') for f in flights[:20])
+            print(f'  empresas encontradas (amostra): {empresas}')
 
     except Exception as e:
         print(f'{date_key}: ERRO — {e}')
